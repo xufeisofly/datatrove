@@ -354,7 +354,10 @@ def is_line_valid(
 ) -> bool:
     if line == '':
         return True
-    words = split_into_words(line, Languages.english)
+    try:
+        words = split_into_words(line, Languages.english)
+    except Exception:
+        return True
     if len(words) == 0:
         return False
     return check_line_word_num(words, min_word_num=min_word_num) \

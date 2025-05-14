@@ -1,4 +1,5 @@
 from datatrove.pipeline.filters.preprocess_beta1_filter import PreprocessBeta1Filter
+from datatrove.pipeline.filters.preprocess_beta2_filter import RepeatingRowsFilter
 import numpy as np
 
 from datatrove.data import Document
@@ -271,3 +272,4 @@ Print 
     """
 
     PreprocessBeta1Filter().filter(doc)
+    RepeatingRowsFilter().filter(doc) 
