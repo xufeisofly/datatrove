@@ -138,16 +138,17 @@ class C4QualityFilter(BaseFilter):
             kept_lines.append(line)
             left_sentences = split_into_sentences(line, self.language)
             self.stat_update("line-kept")
-            if num_sentences < self.min_num_sentences and self.check_left_sentences_valid:
-                for sentence in left_sentences:
-                    is_line_valid(
-                    line=sentence,
-                    max_non_alpha_words_ratio=self.max_non_alpha_words_ratio,
-                    whitelist_chars=self.whitelist_chars,
-                    use_whitelist=self.use_whitelist,
-                    min_word_num=self.min_words_per_line
-                    )
-            return False, "too_few_sentences"
+            if num_sentences < self.min_num_sentences:
+                if self.check_left_sentences_valid:
+                    for sentence in left_sentences:
+                        is_line_valid(
+                        line=sentence,
+                        max_non_alpha_words_ratio=self.max_non_alpha_words_ratio,
+                        whitelist_chars=self.whitelist_chars,
+                        use_whitelist=self.use_whitelist,
+                        min_word_num=self.min_words_per_line
+                        )
+                return False, "too_few_sentences"
 
         doc.text = ("\n" if self.split_paragraph else " ").join(kept_lines).strip()
         return True
