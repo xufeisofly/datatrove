@@ -10,10 +10,12 @@ class RepeatingRowsFilter(BaseFilter):
     def __init__(
         self,
         exclusion_writer: DiskWriter = None,
+        store_new_text = False,
     ):
         """    
         """
         super().__init__(exclusion_writer)
+        self.store_new_text = store_new_text
 
     def filter(self, doc: Document) -> bool | tuple[bool, str]:
         """Args:
@@ -38,5 +40,7 @@ class RepeatingRowsFilter(BaseFilter):
                     unique_set.add(line)
                     result.append(line)
         
-        doc.text = '\n'.join(result)        
+        doc.text = '\n'.join(result)
+        if self.store_new_text:
+            doc.metadata['new_text'] = doc.text
         return True
