@@ -275,4 +275,4 @@ Print 
 
     PreprocessBeta1Filter().filter(doc)
     RepeatingRowsFilter().filter(doc) 
-    C4QualityFilter(filter_curly_bracket=False, filter_no_terminal_punct=False).filter(doc)
+    C4QualityFilter(filter_curly_bracket=False, filter_no_terminal_punct=False, split_paragraph=False).filter(doc)

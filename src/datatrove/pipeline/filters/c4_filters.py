@@ -129,7 +129,7 @@ class C4QualityFilter(BaseFilter):
                 self.stat_update("line-filter-policy")
                 continue
             if self.min_num_sentences != -1:
-                sentences = split_into_sentences(line, self.language) if self.split_paragraph else 1
+                sentences = split_into_sentences(line, self.language) if self.split_paragraph else [line]
                 num_sentences += len(sentences)
                 left_sentences += sentences
             kept_lines.append(line)
