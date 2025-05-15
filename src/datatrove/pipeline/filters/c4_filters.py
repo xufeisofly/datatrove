@@ -88,7 +88,13 @@ class C4QualityFilter(BaseFilter):
         self.language = language
         self.check_left_sentences_valid = check_left_sentences_valid
     def filter(self, doc: Document) -> bool | tuple[bool, str]:
-        lines = doc.text.splitlines() if self.split_paragraph else split_into_sentences(doc.text, self.language)
+        if self.split_paragraph:
+            lines = doc.text.splitlines()
+        else:
+            try:
+                lines = split_into_sentences(doc.text, self.language)
+            except Exception:
+                lines = doc.text.splitlines()
 
         num_sentences = 0
         kept_lines = []
