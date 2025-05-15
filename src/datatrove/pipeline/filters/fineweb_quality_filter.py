@@ -1,7 +1,7 @@
 from datatrove.pipeline.filters.base_filter import BaseFilter
 from datatrove.pipeline.filters.gopher_repetition_filter import find_duplicates
 from datatrove.pipeline.writers.disk_base import DiskWriter
-from datatrove.utils.text import TERMINAL_PUNCTUATION, split_into_words
+from datatrove.utils.text import TERMINAL_PUNCTUATION, split_into_words, high_quality_ratio
 from datatrove.utils.typeshelper import Languages
 
 
@@ -19,6 +19,7 @@ class FineWebQualityFilter(BaseFilter):
         char_duplicates_ratio: float = 0.01,
         new_line_ratio: float = 0.3,
         language: str = Languages.english,
+        high_quality_ratio_value: float = 0.5,
     ):
         super().__init__(exclusion_writer)
         self.line_punct_thr = line_punct_thr
@@ -29,6 +30,8 @@ class FineWebQualityFilter(BaseFilter):
         self.char_duplicates_ratio = char_duplicates_ratio
         self.new_line_ratio = new_line_ratio
         self.language = language
+        self.high_quality_ratio_value = high_quality_ratio_value
+        
 
     def filter(self, doc) -> bool | tuple[bool, str]:
         lines = doc.text.split("\n")
@@ -37,7 +40,8 @@ class FineWebQualityFilter(BaseFilter):
             return False, "empty"
         ratio = sum(1 for line in lines if line.endswith(self.stop_chars)) / len(lines)
         if ratio < self.line_punct_thr and not (ratio == 0 and self.line_punct_exclude_zero):
-            return False, "line_punct_ratio"
+            if high_quality_ratio(lines) < self.high_quality_ratio_value:       
+                return False, "line_punct_ratio"
 
         ratio = sum(1 for line in lines if len(line) <= self.short_line_length) / len(lines)
         if ratio > self.short_line_threshold:

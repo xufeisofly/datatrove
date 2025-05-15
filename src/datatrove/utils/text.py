@@ -399,3 +399,18 @@ def word_num_of_line(line):
 
 def word_num_of_lines(lines):
     return sum(word_num_of_line(line) for line in lines)
+
+
+def high_quality_ratio(lines):
+    if len(lines) == 0:
+        return 0
+    high_quality_num = 0
+    all_quality_num = sum([len(_line) for _line in lines])
+    for line in lines:
+        try:
+            words = split_into_words(line, Languages.english)
+        except Exception:
+            continue
+        if line.endswith(tuple(TERMINAL_PUNCTUATION)) and check_line_word_num(words,min_word_num=10):
+            high_quality_num+=len(line)
+    return high_quality_num/all_quality_num

@@ -1,7 +1,7 @@
 from datatrove.pipeline.filters.base_filter import BaseFilter
 from datatrove.pipeline.filters.gopher_repetition_filter import find_duplicates
 from datatrove.pipeline.writers.disk_base import DiskWriter
-from datatrove.utils.text import TERMINAL_PUNCTUATION, split_into_words
+from datatrove.utils.text import TERMINAL_PUNCTUATION, split_into_words, high_quality_ratio
 from datatrove.utils.typeshelper import Languages
 
 
@@ -19,6 +19,7 @@ class FineWebQualityFilter(BaseFilter):
             char_duplicates_ratio: float = 0.01,
             new_line_ratio: float = 0.3,
             language: str = Languages.english,
+            high_quality_ratio_value: float = 0.5,
     ):
         super().__init__(exclusion_writer)
         self.line_punct_thr = line_punct_thr
@@ -29,6 +30,7 @@ class FineWebQualityFilter(BaseFilter):
         self.char_duplicates_ratio = char_duplicates_ratio
         self.new_line_ratio = new_line_ratio
         self.language = language
+        self.high_quality_ratio_value = high_quality_ratio_value
 
     def filter(self, doc) -> bool | tuple[bool, str]:
         lines = doc.text.split("\n")
@@ -37,9 +39,10 @@ class FineWebQualityFilter(BaseFilter):
             return False, "empty"
 
         ratio = sum(1 for line in lines if line.endswith(self.stop_chars)) / len(lines)
+        print(f"高质量占比：{high_quality_ratio(lines)}行结束标点符号阈值：{round(ratio*100, 3)}%，标准阈值：12%")
         if ratio < self.line_punct_thr and not (ratio == 0 and self.line_punct_exclude_zero):
-            print(f"本文档行结束标点符号阈值{ratio}，标准阈值{self.line_punct_thr}")
-            return False, "line_punct_ratio"
+            if high_quality_ratio(lines) < self.high_quality_ratio_value:           
+                return False, "line_punct_ratio"
 
         ratio = sum(1 for line in lines if len(line) <= self.short_line_length) / len(lines)
         if ratio > self.short_line_threshold:
@@ -61,52 +64,24 @@ class FineWebQualityFilter(BaseFilter):
 if __name__ == '__main__':
     from datatrove.data import Document
     from datatrove.pipeline.filters.preprocess_beta2_filter import RepeatingRowsFilter
+    from datatrove.pipeline.filters.preprocess_beta1_filter import PreprocessBeta1Filter
     rp_filter = RepeatingRowsFilter()
+    pre_filter = PreprocessBeta1Filter()
     
     docx = Document
-    origin_text = """You are here: ALUMNI & COMMUNITY
-Saturday, 18. November 2017
+    origin_text = """Urban Design
 
-Notes & Dates
+Urban Design
 
-International Planning Sessions Winter 2017/18
+Computational Fluid Dynamics (CFD) has always been used in the field of architecture, urban design and urban planning to understand the patterns of wind flow through the built environment. Its analysis is important to evaluate whether the natural ventilation through a site is adequate to mitigate heat and pollutant to achieve better human comfort in dense urban environments.
 
-?
-
-Upcoming Holiday at TU Dortmund University:
-25.12.2017-05.01.2018 - Christmas Break
-
-_______________________
-
-Master Programmes in Germany on Urban-, Regional-, and? Infrastructure Planning
-
-_______________________
-
-_______________________
-
-Alumni & Community
-
-SIADP - SPRING International Association of Development Planners
-
-SIADP - SPRING International Association for Development Planners
-
-Please also visit the SIADP-Website
-
-Since the first SPRING batch completed the course almost 700 educated planners from more than 70 countries returned to their home countries and most of them work in the field of development.
-
-To keep the ties to each other and to facilitate communication among all we founded SIADP in 1991. It provides the opportunity to discuss news and to spread developments which are interesting for third world planners.
-
-Alumni meetings have been organised in Indonesia, Philippines, Tanzania, Ghana, and Ethiopia. SIADP helps the members to look for jobs, keep contacts and with general information by distributing the Newsletter once a year.
-
-All requests about SIADP Organisation to:
-
-Dr. Anne Weber:
-
-?"""
+However, given the complex operational requirements, the response to wind flow is not always done early enough to support planning and design. Moreover, CFD analysis can aid planning and design of urban areas and investigates the workflow requirements, in the hope of making the CFD simulations more accessible to the practices and contribute to design decisions. It also looks at the present technological advancements and future prospects to assess the scenarios where emerging technologies can make CFD simulation more readily available with affordable and even mobile hardware installations. CFD; Outdoor Pedestrian Space; Thermal Comfort; Microclimate; Efficient urban design, sustainability, Airflow, Impact of urban heat island"""
     docx.text = origin_text
-    flag, doc_text = rp_filter.filter(docx)
-    print(len(doc_text.split('\n')))
-    print(len(origin_text.split('\n')))
+    docx.metadata = {}
+    flag1 = pre_filter.filter(docx)
+    # print(docx.text)
+    flag2 = rp_filter.filter(docx)
+    # print(flag1, flag2)
     fb_filters = FineWebQualityFilter()
     print(fb_filters.filter(docx))
 
