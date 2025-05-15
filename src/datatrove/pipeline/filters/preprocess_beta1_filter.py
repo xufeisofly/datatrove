@@ -49,6 +49,7 @@ class PreprocessBeta1Filter(BaseFilter):
             use_whitelist = True,
             min_word_num = 3,
             exclusion_writer: DiskWriter = None,
+            store_new_text = False,
     ):
         super().__init__(exclusion_writer)
         self.valid_line_in_paragraph_ratio = valid_line_in_paragraph_ratio
@@ -56,6 +57,7 @@ class PreprocessBeta1Filter(BaseFilter):
         self.whitelist_chars = whitelist_chars
         self.use_whitelist = use_whitelist
         self.min_word_num = min_word_num
+        self.store_new_text = store_new_text
 
     def filter(self, doc: Document) -> bool | tuple[bool, str]:
         """Args:
@@ -72,4 +74,6 @@ class PreprocessBeta1Filter(BaseFilter):
                                 min_word_num=self.min_word_num)
         if len(doc.text) == 0:
             return False, 'preprocess_beta1_filter'
+        if self.store_new_text:
+            doc.metadata['new_text'] = doc.text        
         return True
