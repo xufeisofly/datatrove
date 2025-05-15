@@ -362,3 +362,21 @@ def is_line_valid(
                                   max_non_alpha_words_ratio=max_non_alpha_words_ratio,
                                   whitelist_chars=whitelist_chars,
                                   use_whitelist=use_whitelist)        
+
+def is_sentence_valid(
+        sentence: str,
+        max_non_alpha_words_ratio,
+        whitelist_chars,
+        use_whitelist,
+        min_word_num,
+) -> bool:
+    if sentence == '':
+        return True
+    words = split_into_words(sentence, Languages.english)
+    if len(words) == 0:
+        return False
+    return check_line_word_num(words, min_word_num=min_word_num) \
+        and check_non_alpha_ratio(words,
+                                  max_non_alpha_words_ratio=max_non_alpha_words_ratio,
+                                  whitelist_chars=whitelist_chars,
+                                  use_whitelist=use_whitelist)   

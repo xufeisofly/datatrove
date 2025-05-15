@@ -9,6 +9,7 @@ from datatrove.pipeline.filters.base_filter import BaseFilter
 from datatrove.pipeline.writers.disk_base import DiskWriter
 from datatrove.utils.text import split_into_sentences
 from datatrove.utils.typeshelper import Languages
+from datatrove.utils.text import is_sentence_valid
 
 
 CITATION_REGEX = re.compile(r"\[\d*]|\[edit]|\[citation needed]")
@@ -71,6 +72,10 @@ class C4QualityFilter(BaseFilter):
         filter_curly_bracket: bool = True,
         filter_policy: bool = True,
         language: str = Languages.english,
+        check_left_sentences_valid: bool = True,
+        max_non_alpha_words_ratio: float = 0.8,
+        whitelist_chars=('(', ')', '%'),
+        use_whitelist = True,
     ):
         super().__init__(exclusion_writer)
         self.split_paragraph = split_paragraph
@@ -84,12 +89,16 @@ class C4QualityFilter(BaseFilter):
         self.filter_curly_bracket = filter_curly_bracket
         self.filter_policy = filter_policy
         self.language = language
-
+        self.check_left_sentences_valid = check_left_sentences_valid
+        self.max_non_alpha_words_ratio = max_non_alpha_words_ratio
+        self.whitelist_chars = whitelist_chars
+        self.use_whitelist = use_whitelist
     def filter(self, doc: Document) -> bool | tuple[bool, str]:
         lines = doc.text.splitlines() if self.split_paragraph else split_into_sentences(doc.text, self.language)
 
         num_sentences = 0
         kept_lines = []
+        left_sentences = []
 
         for line in lines:
             line = line.strip()
@@ -126,11 +135,20 @@ class C4QualityFilter(BaseFilter):
                 self.stat_update("line-filter-policy")
                 continue
             if self.min_num_sentences != -1:
-                num_sentences += len(split_into_sentences(line, self.language)) if self.split_paragraph else 1
+                sentences = split_into_sentences(line, self.language) if self.split_paragraph else 1
+                num_sentences += len(sentences)
+                left_sentences += sentences
             kept_lines.append(line)
             self.stat_update("line-kept")
-        if num_sentences < self.min_num_sentences:
-            return False, "too_few_sentences"
+        if num_sentences < self.min_num_sentences and self.check_left_sentences_valid:
+            if all(not is_sentence_valid(
+                sentence=sentence,
+                max_non_alpha_words_ratio=self.max_non_alpha_words_ratio,
+                whitelist_chars=self.whitelist_chars,
+                use_whitelist=self.use_whitelist,
+                min_word_num=self.min_words_per_line
+            ) for sentence in left_sentences):
+                return False, "too_few_sentences"
 
         doc.text = ("\n" if self.split_paragraph else " ").join(kept_lines).strip()
         return True
