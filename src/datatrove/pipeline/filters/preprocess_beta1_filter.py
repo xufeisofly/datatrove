@@ -1,6 +1,6 @@
 from datatrove.data import Document
 from datatrove.pipeline.filters.base_filter import BaseFilter
-from datatrove.utils.text import add_modifiers_to_meta, is_line_valid
+from datatrove.utils.text import add_modifiers_to_meta, is_line_valid, NON_ALPHA_WHITELIST, word_num_of_line, word_num_of_lines
 from datatrove.pipeline.writers.disk_base import DiskWriter
 
 
@@ -17,17 +17,17 @@ def modify_doc_by_paragraph(
     new_paras = []
     for para in paras:
         lines = para.split('\n')
-        total_num = len(lines)
-        invalid_line_num = 0
+        total_word_num = word_num_of_lines(lines)
+        invalid_line_word_num = 0
         for line in lines:
             if not is_line_valid(line,
                                  max_non_alpha_words_ratio=max_non_alpha_words_ratio,
                                  whitelist_chars=whitelist_chars,
                                  use_whitelist=use_whitelist,
                                  min_word_num=min_word_num):
-                invalid_line_num += 1
+                invalid_line_word_num += word_num_of_line(line)
 
-        if (len(lines)-invalid_line_num) / total_num >= valid_line_in_paragraph_ratio:
+        if (word_num_of_lines(lines)-invalid_line_word_num) / total_word_num >= valid_line_in_paragraph_ratio:
             new_paras.append(para)
         
 
@@ -45,7 +45,7 @@ class PreprocessBeta1Filter(BaseFilter):
             self,
             valid_line_in_paragraph_ratio: float = 0.5,
             max_non_alpha_words_ratio: float = 0.8,
-            whitelist_chars=('(', ')', '%'),
+            whitelist_chars=NON_ALPHA_WHITELIST,
             use_whitelist = True,
             min_word_num = 3,
             exclusion_writer: DiskWriter = None,

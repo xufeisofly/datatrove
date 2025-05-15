@@ -1,7 +1,7 @@
 import re
 import unicodedata
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, partial
 from itertools import tee
 from typing import Iterable
 
@@ -9,6 +9,7 @@ import regex
 
 from datatrove.utils.typeshelper import Languages
 
+NON_ALPHA_WHITELIST = ('(', ')', '%')
 
 PUNCTUATION = "!/—”:％１〈&(、━\\【#%「」，】；+^]~“《„';’{|∶´[=-`*．（–？！：$～«〉,><》)?）。…@_.\"}►»" + "".join(
     map(
@@ -345,12 +346,17 @@ def check_line_word_num(words, min_word_num: int = 3):
     return len(words) >= min_word_num
 
 
+def check_average_word_length(words, min_length: int = 3, max_length: int = 10):
+    average_word_length = sum([len(word) for word in words]) / len(words)
+    return average_word_length >= min_length and average_word_length <= max_length
+
+
 def is_line_valid(
         line: str,
-        max_non_alpha_words_ratio,
-        whitelist_chars,
-        use_whitelist,
-        min_word_num,
+        max_non_alpha_words_ratio=0.8,
+        whitelist_chars=NON_ALPHA_WHITELIST,
+        use_whitelist=True,
+        min_word_num=3,
 ) -> bool:
     if line == '':
         return True
@@ -361,25 +367,35 @@ def is_line_valid(
     if len(words) == 0:
         return False
     return check_line_word_num(words, min_word_num=min_word_num) \
+        and check_average_word_length(words) \
         and check_non_alpha_ratio(words,
                                   max_non_alpha_words_ratio=max_non_alpha_words_ratio,
                                   whitelist_chars=whitelist_chars,
-                                  use_whitelist=use_whitelist)        
+                                  use_whitelist=use_whitelist)
 
-def is_sentence_valid(
-        sentence: str,
-        max_non_alpha_words_ratio,
-        whitelist_chars,
-        use_whitelist,
-        min_word_num,
-) -> bool:
-    if sentence == '':
-        return True
-    words = split_into_words(sentence, Languages.english)
-    if len(words) == 0:
+def is_line_good(line: str, min_word_num=10) -> bool:
+    try:
+        words = split_into_words(line, Languages.english)
+    except Exception:
         return False
-    return check_line_word_num(words, min_word_num=min_word_num) \
-        and check_non_alpha_ratio(words,
-                                  max_non_alpha_words_ratio=max_non_alpha_words_ratio,
-                                  whitelist_chars=whitelist_chars,
-                                  use_whitelist=use_whitelist)   
+    if not check_average_word_length(words):
+        return False
+    if not check_line_word_num(words, min_word_num=min_word_num):
+        return False
+    return True
+    
+
+def is_sentence_valid(sentence: str) -> bool:
+    return is_line_valid(sentence)   
+
+
+def is_sentence_good(sentence: str) -> bool:
+    return is_line_good(sentence)
+
+
+def word_num_of_line(line):
+    return len(line.split(' '))
+
+
+def word_num_of_lines(lines):
+    return sum(word_num_of_line(line) for line in lines)
