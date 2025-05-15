@@ -9,7 +9,7 @@ from datatrove.pipeline.filters.base_filter import BaseFilter
 from datatrove.pipeline.writers.disk_base import DiskWriter
 from datatrove.utils.text import split_into_sentences
 from datatrove.utils.typeshelper import Languages
-from datatrove.utils.text import is_line_valid
+from datatrove.utils.text import is_sentence_valid
 
 
 CITATION_REGEX = re.compile(r"\[\d*]|\[edit]|\[citation needed]")
@@ -98,6 +98,7 @@ class C4QualityFilter(BaseFilter):
 
         num_sentences = 0
         kept_lines = []
+        left_sentences = []
 
         for line in lines:
             line = line.strip()
@@ -134,20 +135,19 @@ class C4QualityFilter(BaseFilter):
                 self.stat_update("line-filter-policy")
                 continue
             if self.min_num_sentences != -1:
-                num_sentences += len(split_into_sentences(line, self.language)) if self.split_paragraph else 1
+                sentences = split_into_sentences(line, self.language) if self.split_paragraph else 1
+                num_sentences += len(sentences)
+                left_sentences += sentences
             kept_lines.append(line)
-            left_sentences = split_into_sentences(line, self.language)
             self.stat_update("line-kept")
-            if num_sentences < self.min_num_sentences:
-                if self.check_left_sentences_valid:
-                    for sentence in left_sentences:
-                        is_line_valid(
-                        line=sentence,
-                        max_non_alpha_words_ratio=self.max_non_alpha_words_ratio,
-                        whitelist_chars=self.whitelist_chars,
-                        use_whitelist=self.use_whitelist,
-                        min_word_num=self.min_words_per_line
-                        )
+        if num_sentences < self.min_num_sentences and self.check_left_sentences_valid:
+            if all(not is_sentence_valid(
+                sentence=sentence,
+                max_non_alpha_words_ratio=self.max_non_alpha_words_ratio,
+                whitelist_chars=self.whitelist_chars,
+                use_whitelist=self.use_whitelist,
+                min_word_num=self.min_words_per_line
+            ) for sentence in left_sentences):
                 return False, "too_few_sentences"
 
         doc.text = ("\n" if self.split_paragraph else " ").join(kept_lines).strip()
