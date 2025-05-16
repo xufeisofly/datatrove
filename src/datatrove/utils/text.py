@@ -367,7 +367,6 @@ def is_line_valid(
     if len(words) == 0:
         return False
     return check_line_word_num(words, min_word_num=min_word_num) \
-        and check_average_word_length(words) \
         and check_non_alpha_ratio(words,
                                   max_non_alpha_words_ratio=max_non_alpha_words_ratio,
                                   whitelist_chars=whitelist_chars,
@@ -377,8 +376,6 @@ def is_line_good(line: str, min_word_num=10) -> bool:
     try:
         words = split_into_words(line, Languages.english)
     except Exception:
-        return False
-    if not check_average_word_length(words):
         return False
     if not check_line_word_num(words, min_word_num=min_word_num):
         return False
