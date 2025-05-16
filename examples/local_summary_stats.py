@@ -52,8 +52,6 @@ if __name__ == "__main__":
         skip_completed=False,
     )
 
-    compute.run()
-
     merger = LocalPipelineExecutor(
         pipeline=[
             StatsMerger(
@@ -69,4 +67,4 @@ if __name__ == "__main__":
         skip_completed=False,
     )
 
-    #merger.run()
+    merger.run()
