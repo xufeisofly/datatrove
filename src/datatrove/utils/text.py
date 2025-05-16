@@ -353,7 +353,7 @@ def check_average_word_length(words, min_length: int = 3, max_length: int = 10):
 
 def is_line_valid(
         line: str,
-        max_non_alpha_words_ratio=0.8,
+        max_non_alpha_words_ratio=0.7,
         whitelist_chars=NON_ALPHA_WHITELIST,
         use_whitelist=True,
         min_word_num=3,
