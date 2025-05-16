@@ -49,7 +49,6 @@ if __name__ == "__main__":
         ],
         tasks=TOTAL_TASKS,
         logging_dir=f"{LOCAL_LOGS_FOLDER}-compute",
-        workers=5,
         skip_completed=False,
     )
 
