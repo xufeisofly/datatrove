@@ -88,12 +88,15 @@ class C4QualityFilter(BaseFilter):
         self.language = language
         self.check_left_sentences_valid = check_left_sentences_valid
     def filter(self, doc: Document) -> bool | tuple[bool, str]:
-        if self.split_paragraph:
+        split_paragraph = self.split_paragraph
+        
+        if split_paragraph:
             lines = doc.text.splitlines()
         else:
             try:
                 lines = split_into_sentences(doc.text, self.language)
             except Exception:
+                split_paragraph = True
                 lines = doc.text.splitlines()
 
         num_sentences = 0
@@ -135,7 +138,7 @@ class C4QualityFilter(BaseFilter):
                 self.stat_update("line-filter-policy")
                 continue
             if self.min_num_sentences != -1:
-                sentences = split_into_sentences(line, self.language) if self.split_paragraph else [line]
+                sentences = split_into_sentences(line, self.language) if split_paragraph else [line]
                 num_sentences += len(sentences)
                 left_sentences += sentences
             kept_lines.append(line)
@@ -144,7 +147,7 @@ class C4QualityFilter(BaseFilter):
             if not any(is_sentence_good(sentence=sentence) for sentence in left_sentences):
                 return False, "too_few_sentences"
 
-        doc.text = ("\n" if self.split_paragraph else " ").join(kept_lines).strip()
+        doc.text = ("\n" if split_paragraph else " ").join(kept_lines).strip()
         return True
 
 
