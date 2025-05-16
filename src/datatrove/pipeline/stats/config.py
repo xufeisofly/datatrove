@@ -3,7 +3,7 @@ from typing import Literal
 
 
 # GROUP = Literal["summary", "histogram", "fqdn", "suffix"]
-GROUP = Literal["summary"]
+GROUP = Literal["summary", "histogram"]
 
 
 @dataclass(frozen=True)
