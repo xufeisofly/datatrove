@@ -25,7 +25,7 @@ if __name__ == "__main__":
     SOURCE = f"{args.prefix}/{args.dump_path}"
     print(SOURCE)
 
-    top_k_config = TopKConfig(top_k_groups=["summary"], top_k=10_000)
+    top_k_config = TopKConfig(top_k_groups=["summary", "histogram"], top_k=10_000)
 
     compute = LocalPipelineExecutor(
         pipeline=[
