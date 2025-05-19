@@ -56,19 +56,21 @@ if __name__ == "__main__":
         skip_completed=False,
     )
 
-    merger = LocalPipelineExecutor(
-        pipeline=[
-            StatsMerger(
-                input_folder=DATA_FOLDER,
-                output_folder=f"{DATA_FOLDER}",
-                remove_input=False,
-                top_k_config=dataclasses.replace(top_k_config, top_k=8_000),
-            ),
-        ],
-        tasks=TOTAL_TASKS,
-        logging_dir=f"{LOCAL_LOGS_FOLDER}-merge",
-        depends=compute,
-        skip_completed=False,
-    )
+    compute.run()
 
-    merger.run()
+    # merger = LocalPipelineExecutor(
+    #     pipeline=[
+    #         StatsMerger(
+    #             input_folder=DATA_FOLDER,
+    #             output_folder=f"{DATA_FOLDER}",
+    #             remove_input=False,
+    #             top_k_config=dataclasses.replace(top_k_config, top_k=8_000),
+    #         ),
+    #     ],
+    #     tasks=TOTAL_TASKS,
+    #     logging_dir=f"{LOCAL_LOGS_FOLDER}-merge",
+    #     depends=compute,
+    #     skip_completed=False,
+    # )
+
+    # merger.run()
