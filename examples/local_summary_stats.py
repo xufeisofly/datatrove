@@ -5,6 +5,7 @@ from datatrove.executor.local import LocalPipelineExecutor
 from datatrove.pipeline.filters.sampler_filter import SamplerFilter
 from datatrove.pipeline.readers.jsonl import JsonlReader
 from datatrove.pipeline.stats import DocStats, LineStats, StatsMerger, TopKConfig, WordStats
+from datatrove.pipeline.writers.jsonl import JsonlWriter
 
 
 TOTAL_TASKS = 500
@@ -23,7 +24,9 @@ if __name__ == "__main__":
     LOCAL_LOGS_FOLDER = f"/root/dataprocess/logs/{experiment_name}"
     DATA_FOLDER = f"/root/dataprocess/data/stats/{experiment_name}"
     SOURCE = f"{args.prefix}/{args.dump_path}"
+    OUTPUT = os.path.join(SOURCE, 'output')
     print(SOURCE)
+    print(OUTPUT)
 
     top_k_config = TopKConfig(top_k_groups=["summary", "histogram"], top_k=10_000)
 
@@ -46,6 +49,7 @@ if __name__ == "__main__":
                 output_folder=DATA_FOLDER,
                 top_k_config=top_k_config,
             ),
+            JsonlWriter(OUTPUT, compression=None),
         ],
         tasks=TOTAL_TASKS,
         logging_dir=f"{LOCAL_LOGS_FOLDER}-compute",
