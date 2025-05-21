@@ -408,6 +408,6 @@ def high_quality_ratio(lines):
             words = split_into_words(line, Languages.english)
         except Exception:
             continue
-        if line.endswith(tuple(TERMINAL_PUNCTUATION)) and check_line_word_num(words,min_word_num=10):
+        if check_line_word_num(words,min_word_num=10):
             high_quality_num+=len(line)
     return high_quality_num/all_quality_num

@@ -1,88 +1,118 @@
-from datatrove.pipeline.filters.base_filter import BaseFilter
-from datatrove.pipeline.filters.gopher_repetition_filter import find_duplicates
-from datatrove.pipeline.writers.disk_base import DiskWriter
-from datatrove.utils.text import TERMINAL_PUNCTUATION, split_into_words, high_quality_ratio
-from datatrove.utils.typeshelper import Languages
+import os
+import sys
+from glob import glob
+from datatrove.pipeline.filters.preprocess_beta1_filter import PreprocessBeta1Filter
+from datatrove.pipeline.filters.preprocess_beta2_filter import RepeatingRowsFilter
+from loguru import logger
+
+from datatrove.executor.local import LocalPipelineExecutor
+from datatrove.pipeline.filters import (
+    GopherRepetitionFilter,
+    GopherQualityFilter,
+    C4QualityFilter,
+    FineWebQualityFilter,
+)
+from datatrove.pipeline.readers import JsonlReader
+from datatrove.pipeline.writers.jsonl import JsonlWriter
 
 
-class FineWebQualityFilter(BaseFilter):
-    name = "FineWeb Quality"
+def process_filter(input_folder, output_folder, job_name, n_job, partition, file_name, filter_type):
+    """
+    处理单个过滤器任务。
+    :param input_folder: 输入文件夹路径
+    :param output_folder: 输出文件夹路径
+    :param job_name: 任务名称
+    :param n_job: 并行任务数
+    :param partition: SLURM 分区
+    :param file_name: 文件名标识
+    :param filter_type: 过滤器类型
+    """
+    # 确保输出文件夹存在
+    os.makedirs(output_folder, exist_ok=True)
 
-    def __init__(
-            self,
-            exclusion_writer: DiskWriter = None,
-            line_punct_thr: float = 0.12,
-            line_punct_exclude_zero: bool = False,
-            stop_chars: tuple[str] | None = None,
-            short_line_thr: float = 0.67,
-            short_line_length: int = 30,
-            char_duplicates_ratio: float = 0.01,
-            new_line_ratio: float = 0.3,
-            language: str = Languages.english,
-            high_quality_ratio_value: float = 0.5,
-    ):
-        super().__init__(exclusion_writer)
-        self.line_punct_thr = line_punct_thr
-        self.line_punct_exclude_zero = line_punct_exclude_zero
-        self.stop_chars = stop_chars if stop_chars is not None else tuple(TERMINAL_PUNCTUATION)
-        self.short_line_threshold = short_line_thr
-        self.short_line_length = short_line_length
-        self.char_duplicates_ratio = char_duplicates_ratio
-        self.new_line_ratio = new_line_ratio
-        self.language = language
-        self.high_quality_ratio_value = high_quality_ratio_value
+    logger.info(f"Processing {input_folder} with filter {filter_type}.")
 
-    def filter(self, doc) -> bool | tuple[bool, str]:
-        lines = doc.text.split("\n")
-        lines = [line for line in lines if  line.strip()]
-        if len(lines) == 0:
-            return False, "empty"
+    # 定义输入读取器
+    INPUT_READER = JsonlReader(input_folder, glob_pattern="*.jsonl", text_key="text")
+    FILTERING_OUTPUT_PATH = f"{output_folder}/{filter_type}"
 
-        ratio = sum(1 for line in lines if line.endswith(self.stop_chars)) / len(lines)
-        print(f"高质量占比：{high_quality_ratio(lines)}行结束标点符号阈值：{round(ratio*100, 3)}%，标准阈值：12%")
-        if ratio < self.line_punct_thr and not (ratio == 0 and self.line_punct_exclude_zero):
-            if high_quality_ratio(lines) < self.high_quality_ratio_value:           
-                return False, "line_punct_ratio"
+    LOGGING_FOLDER  = "/root/dataprocess/data/logs/d3_r2_log"
 
-        ratio = sum(1 for line in lines if len(line) <= self.short_line_length) / len(lines)
-        if ratio > self.short_line_threshold:
-            return False, "short_line_ratio"
+    # 根据过滤器类型选择过滤器
+    if filter_type == "gopher_rep":
+        filter_task = GopherRepetitionFilter(
+            exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/removed/", compression=None)
+        )
+    elif filter_type == "gopher_qual":
+        filter_task = GopherQualityFilter(
+            use_whitelist=True,
+            exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/removed/", compression=None)
+        )
+    elif filter_type == "c4":
+        filter_task = C4QualityFilter(
+            exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/removed/", compression=None),
+            filter_curly_bracket=False,
+            filter_no_terminal_punct=False,
+            check_left_sentences_valid=True,
+            split_paragraph=False
+        )
+    elif filter_type == "fineweb_qual":
+        filter_task = FineWebQualityFilter(
+            exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/removed/", compression=None)
+        )
+    else:
+        raise ValueError(f"Unknown filter type: {filter_type}")
 
-        ratio = find_duplicates(lines)[1] / len(doc.text.replace("\n", ""))
-        print(f"重复率：{ratio*100}%，标准：1%")
-        if ratio > self.char_duplicates_ratio:
-            return False, "char_dup_ratio"
+    # 创建 SLURM 执行器
+    executor = LocalPipelineExecutor(
+        pipeline=[
+            INPUT_READER,
+            PreprocessBeta1Filter(),
+            filter_task,
+            JsonlWriter(f"{FILTERING_OUTPUT_PATH}/output/", compression=None),            
+        ],
+        workers=5,
+        tasks=n_job,
+        skip_completed=False,
+        logging_dir=f"{LOGGING_FOLDER}/{filter_type}/{file_name}",
+        randomize_start_duration=180,  # 避免同时启动所有任务
+    )
 
-        words = split_into_words(doc.text, self.language)
-        new_line = doc.text.count("\n")
-        if new_line / len(words) > self.new_line_ratio:
-            return False, "list_ratio"
+    # 启动任务
+    executor.run()
 
-        return True
+
+def get_subfolders(parent_folder):
+    """获取指定目录下的所有子文件夹"""
+    return [f.path for f in os.scandir(parent_folder) if f.is_dir()]
 
 
 if __name__ == '__main__':
-    from datatrove.data import Document
-    from datatrove.pipeline.filters.preprocess_beta2_filter import RepeatingRowsFilter
-    from datatrove.pipeline.filters.preprocess_beta1_filter import PreprocessBeta1Filter
-    rp_filter = RepeatingRowsFilter()
-    pre_filter = PreprocessBeta1Filter()
-    
-    docx = Document
-    origin_text = """Urban Design
+    input_folder_base = "/root/dataprocess/data/local_test_data/exp_d3/"
+    output_folder_base = "/root/dataprocess/data/local_test_data/exp_d3_r2_output/"
+    base_job_name = "exp_d3_r2"
 
-Urban Design
+    # 获取该文件夹下的所有子文件夹
+    subfolders = get_subfolders(input_folder_base)
 
-Computational Fluid Dynamics (CFD) has always been used in the field of architecture, urban design and urban planning to understand the patterns of wind flow through the built environment. Its analysis is important to evaluate whether the natural ventilation through a site is adequate to mitigate heat and pollutant to achieve better human comfort in dense urban environments.
+    # 定义过滤器类型列表
+    filter_types = ["gopher_rep", "gopher_qual", "c4", "fineweb_qual"]
 
-However, given the complex operational requirements, the response to wind flow is not always done early enough to support planning and design. Moreover, CFD analysis can aid planning and design of urban areas and investigates the workflow requirements, in the hope of making the CFD simulations more accessible to the practices and contribute to design decisions. It also looks at the present technological advancements and future prospects to assess the scenarios where emerging technologies can make CFD simulation more readily available with affordable and even mobile hardware installations. CFD; Outdoor Pedestrian Space; Thermal Comfort; Microclimate; Efficient urban design, sustainability, Airflow, Impact of urban heat island"""
-    docx.text = origin_text
-    docx.metadata = {}
-    flag1 = pre_filter.filter(docx)
-    # print(docx.text)
-    flag2 = rp_filter.filter(docx)
-    # print(flag1, flag2)
-    fb_filters = FineWebQualityFilter()
-    print(fb_filters.filter(docx))
+    for subfolder in subfolders:
+        file_name = os.path.basename(subfolder)
+        input_folder = subfolder
+        output_folder = os.path.join(output_folder_base, file_name)
 
+        njobs = len(glob(f"{input_folder}/*.jsonl"))
 
+        # 对每个子文件夹分别运行 4 个过滤器
+        for filter_type in filter_types:
+            process_filter(
+                input_folder=input_folder,
+                output_folder=output_folder,
+                job_name=f"{base_job_name}_{file_name}",
+                n_job=njobs,
+                partition="operation",
+                file_name=file_name,
+                filter_type=filter_type,
+            )

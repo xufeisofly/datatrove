@@ -16,10 +16,10 @@ class FineWebQualityFilter(BaseFilter):
         stop_chars: tuple[str] | None = None,
         short_line_thr: float = 0.67,
         short_line_length: int = 30,
-        char_duplicates_ratio: float = 0.01,
+        char_duplicates_ratio: float = 0.1,
         new_line_ratio: float = 0.3,
         language: str = Languages.english,
-        high_quality_ratio_value: float = 0.5,
+        high_quality_ratio_value: float = 0.75,
     ):
         super().__init__(exclusion_writer)
         self.line_punct_thr = line_punct_thr
@@ -40,7 +40,7 @@ class FineWebQualityFilter(BaseFilter):
             return False, "empty"
         ratio = sum(1 for line in lines if line.endswith(self.stop_chars)) / len(lines)
         if ratio < self.line_punct_thr and not (ratio == 0 and self.line_punct_exclude_zero):
-            if high_quality_ratio(lines) < self.high_quality_ratio_value:       
+            if high_quality_ratio(lines) < self.high_quality_ratio_value:
                 return False, "line_punct_ratio"
 
         ratio = sum(1 for line in lines if len(line) <= self.short_line_length) / len(lines)
