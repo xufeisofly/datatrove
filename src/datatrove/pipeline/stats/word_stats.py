@@ -76,8 +76,8 @@ class WordStats(BaseStats):
                 f"long_word_ratio_{chars}": get_long_word_ratio(words, chars)
                 for chars in self.long_word_max_chars_threshold
             },
-            "type_token_ratio": len(set(words)) / len(words),
-            "uppercase_word_ratio": sum([1 for word in words if word.isupper()]) / len(words),
-            "capitalized_word_ratio": sum([1 for word in words if word.istitle()]) / len(words),
-            "stop_word_ratio": sum([1 for word in words if word in self.stop_words]) / len(words),
+            "type_token_ratio": len(set(words)) / len(words) if len(words) != 0 else -1,
+            "uppercase_word_ratio": sum([1 for word in words if word.isupper()]) / len(words) if len(words) != 0 else -1,
+            "capitalized_word_ratio": sum([1 for word in words if word.istitle()]) / len(words) if len(words) != 0 else -1,
+            "stop_word_ratio": sum([1 for word in words if word in self.stop_words]) / len(words) if len(words) != 0 else -1,
         }

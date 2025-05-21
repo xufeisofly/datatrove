@@ -35,9 +35,9 @@ if __name__ == "__main__":
         pipeline=[
             JsonlReader(SOURCE, doc_progress=True, limit=-1, glob_pattern=args.glob, text_key=args.text_key),
             # Sampling is fine for summary stats
-            SamplerFilter(
-                rate=args.sample_rate,
-            ),
+            # SamplerFilter(
+            #     rate=args.sample_rate,
+            # ),
             WordStats(
                 output_folder=DATA_FOLDER,
                 top_k_config=top_k_config,
