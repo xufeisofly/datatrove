@@ -53,6 +53,7 @@ if __name__ == "__main__":
             JsonlWriter(OUTPUT, compression=None),
         ],
         tasks=TOTAL_TASKS,
+        workers=5,
         logging_dir=f"{LOCAL_LOGS_FOLDER}-compute",
         skip_completed=False,
     )
