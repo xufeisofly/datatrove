@@ -10,11 +10,11 @@ from datatrove.utils.word_tokenizers import load_word_tokenizer
 
 
 def get_short_word_ratio(words: list[str], threshold: int) -> float:
-    return sum([1 for word in words if len(word) <= threshold]) / len(words)
+    return sum([1 for word in words if len(word) <= threshold]) / len(words) if len(words) != 0 else -1
 
 
 def get_long_word_ratio(words: list[str], threshold: int) -> float:
-    return sum([1 for word in words if len(word) >= threshold]) / len(words)
+    return sum([1 for word in words if len(word) >= threshold]) / len(words) if len(words) != 0 else -1
 
 
 class WordStats(BaseStats):
