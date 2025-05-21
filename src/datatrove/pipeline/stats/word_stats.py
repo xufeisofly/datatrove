@@ -66,7 +66,7 @@ class WordStats(BaseStats):
 
         return {
             "n_words": len(words),
-            "avg_word_length": sum([len(word) for word in words]) / len(words),
+            "avg_word_length": sum([len(word) for word in words]) / len(words) if len(words) != 0 else -1,
             "avg_words_per_line": len(words) / len(lines),
             **{
                 f"short_word_ratio_{chars}": get_short_word_ratio(words, chars)
