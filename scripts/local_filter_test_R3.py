@@ -1,12 +1,14 @@
 import os
+import sys
+sys.path.append("/home/wujinpeng/datatrove/src")
 from glob import glob
+from datatrove.pipeline.filters.line_removal_filter import LineRemovalFilter
 from loguru import logger
 
 from datatrove.executor.local import LocalPipelineExecutor
 from datatrove.pipeline.filters import (
     GopherRepetitionFilter,
     GopherQualityFilter,
-    C4QualityFilter,
     FineWebQualityFilter,
 )
 from datatrove.pipeline.readers import JsonlReader
@@ -33,7 +35,7 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
     INPUT_READER = JsonlReader(input_folder, glob_pattern="*.jsonl", text_key="text")
     FILTERING_OUTPUT_PATH = f"{output_folder}/{filter_type}"
 
-    LOGGING_FOLDER  = f"/root/dataprocess/data/logs/d3_r0_log/"
+    LOGGING_FOLDER  = f"/home/wujinpeng/dataprocess/data/logs/d1_log/"
 
     # 根据过滤器类型选择过滤器
     if filter_type == "gopher_rep":
@@ -42,13 +44,8 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
         )
     elif filter_type == "gopher_qual":
         filter_task = GopherQualityFilter(
-            # use_whitelist=True,
+            use_whitelist=True,
             exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/removed/", compression=None)
-        )
-    elif filter_type == "c4":
-        filter_task = C4QualityFilter(
-            exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/removed/", compression=None),
-            # filter_curly_bracket=False,
         )
     elif filter_type == "fineweb_qual":
         filter_task = FineWebQualityFilter(
@@ -61,8 +58,9 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
     executor = LocalPipelineExecutor(
         pipeline=[
             INPUT_READER,
-            # PreprocessBeta1Filter(),
-            # RepeatingRowsFilter(),
+            LineRemovalFilter(
+                exclusion_writer=JsonlWriter(f"{output_folder}/line_removal/removed/", compression=None)
+            ),
             filter_task,
             JsonlWriter(f"{FILTERING_OUTPUT_PATH}/output/", compression=None),            
         ],
@@ -83,15 +81,15 @@ def get_subfolders(parent_folder):
 
 
 if __name__ == '__main__':
-    input_folder_base = "/root/dataprocess/data/local_test_data/exp_d3/"
-    output_folder_base = "/root/dataprocess/data/local_test_data/exp_d3_r0_output/"
-    base_job_name = "exp_d3_r0"
+    input_folder_base = "/home/wujinpeng/dataprocess/data/exp_d1/"
+    output_folder_base = "/home/wujinpeng/dataprocess/data/exp_d1_output/"
+    base_job_name = "exp_d1"
 
     # 获取该文件夹下的所有子文件夹
     subfolders = get_subfolders(input_folder_base)
 
     # 定义过滤器类型列表
-    filter_types = ["gopher_rep", "gopher_qual", "c4", "fineweb_qual"]
+    filter_types = ["gopher_rep", "gopher_qual", "fineweb_qual"]
 
     for subfolder in subfolders:
         file_name = os.path.basename(subfolder)
