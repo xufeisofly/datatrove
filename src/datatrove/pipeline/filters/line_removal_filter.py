@@ -67,7 +67,7 @@ def line_filtering(line, max_uppercase_ratio, min_word_cnt_per_line) -> tuple[bo
     1. bool: whether the line should be filtered or not
     2. int: words count in the removed line 
     """
-    if not line:
+    if not line.strip():
         return True, 0
     # Normalize the line text
     line_norm = line.strip().lower()
@@ -150,8 +150,9 @@ class LineRemovalFilter(BaseFilter):
                 num_sentences += len(sentences)
             # 统计被删除的单词数
             fraction_of_words_corrected_in_lines += removed_words_cnt
-        
-        if fraction_of_words_corrected_in_lines / len(text.split())  > self.max_removed_ratio:
+
+        total_words_cnt = len(text.split())
+        if total_words_cnt and fraction_of_words_corrected_in_lines / total_words_cnt  > self.max_removed_ratio:
             return False, 'too_many_removed_lines'
         if num_sentences < self.num_of_sentences:
             return False, 'too_few_sentences'
