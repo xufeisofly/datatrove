@@ -25,7 +25,7 @@ if __name__ == "__main__":
     LOCAL_LOGS_FOLDER = f"/root/dataprocess/logs/{experiment_name}"
     DATA_FOLDER = f"/root/dataprocess/data/stats/{experiment_name}"
     SOURCE = f"{args.prefix}/{args.dump_path}"
-    OUTPUT = os.path.join(SOURCE, 'output')
+    OUTPUT = os.path.join(SOURCE, 'stats')
     print(SOURCE)
     print(OUTPUT)
 

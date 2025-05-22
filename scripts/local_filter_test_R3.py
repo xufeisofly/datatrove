@@ -3,6 +3,7 @@ import sys
 sys.path.append("/home/wujinpeng/datatrove/src")
 from glob import glob
 from datatrove.pipeline.filters.line_removal_filter import LineRemovalFilter
+from datatrove.pipeline.stats import DocStats, LineStats, WordStats
 from loguru import logger
 
 from datatrove.executor.local import LocalPipelineExecutor
@@ -36,6 +37,20 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
     FILTERING_OUTPUT_PATH = f"{output_folder}/{filter_type}"
 
     LOGGING_FOLDER  = f"/home/wujinpeng/dataprocess/data/logs/d1_log/"
+    DATA_FOLDER = f"{FILTERING_OUTPUT_PATH}/stats"
+
+    def stats_pipeline():
+        return [
+            WordStats(
+                output_folder=DATA_FOLDER,
+            ),
+            LineStats(
+                output_folder=DATA_FOLDER,
+            ),
+            DocStats(
+                output_folder=DATA_FOLDER,
+            ),            
+        ]
 
     # 根据过滤器类型选择过滤器
     if filter_type == "gopher_rep":
@@ -63,9 +78,9 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
                 store_new_text=True,
             ),
             filter_task,
+            *stats_pipeline(),
             JsonlWriter(f"{FILTERING_OUTPUT_PATH}/output/", compression=None),            
         ],
-        workers=5,
         tasks=n_job,
         skip_completed=False,
         logging_dir=f"{LOGGING_FOLDER}/{filter_type}/{file_name}",
