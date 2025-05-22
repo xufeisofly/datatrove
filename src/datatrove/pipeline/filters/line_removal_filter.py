@@ -67,10 +67,10 @@ def line_filtering(line, max_uppercase_ratio, min_word_cnt_per_line) -> tuple[bo
     1. bool: whether the line should be filtered or not
     2. int: words count in the removed line 
     """
-    if not line.strip():
-        return True, 0
     # Normalize the line text
     line_norm = line.strip().lower()
+    if not line_norm:
+        return True, 0
     word_cnt_line = len(line_norm.split())
 
     # 1.1 Remove lines not ending up in a terminal punctuation mark
