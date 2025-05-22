@@ -61,12 +61,14 @@ def is_counter(input_text):
     return bool(re.match(pattern, input_text))        
 
 
-def line_filtering(line) -> tuple[bool, int]:
+def line_filtering(line, max_uppercase_ratio, min_word_cnt_per_line) -> tuple[bool, int]:
     """
     return:
     1. bool: whether the line should be filtered or not
     2. int: words count in the removed line 
     """
+    if not line:
+        return True, 0
     # Normalize the line text
     line_norm = line.strip().lower()
     word_cnt_line = len(line_norm.split())
@@ -84,8 +86,12 @@ def line_filtering(line) -> tuple[bool, int]:
     # Do not include the characters corrected by javascript into the counting
 
     # 1.3.1 Remove lines of uppercase characters only
-    if line.isupper():
-        return True, word_cnt_line  #, "1.3.1_RefinedWeb_uppercase_only"
+    num_uppercase = sum(char.isupper() for char in line)
+    if num_uppercase / len(line) > max_uppercase_ratio:
+        return True, word_cnt_line
+        
+    # if line.isupper():
+    #     return True, word_cnt_line  #, "1.3.1_RefinedWeb_uppercase_only"
     # 1.3.2 Remove lines of numerical characters
     if line_norm.isdigit():
         return True, word_cnt_line  #, "1.3.2_RefinedWeb_digits_only"
@@ -93,7 +99,7 @@ def line_filtering(line) -> tuple[bool, int]:
     if is_counter(line_norm):
         return True, word_cnt_line  #, "1.3.3_RefinedWeb_is_counter"
     # 1.3.4 Remove lines with only a few word
-    if word_cnt_line <= 1:  # TODO: decide the threshold
+    if word_cnt_line < min_word_cnt_per_line:  # TODO: decide the threshold
         return True, word_cnt_line  #, "1.3.4_RefinedWeb_line_too_short"
 
 
@@ -107,6 +113,8 @@ class LineRemovalFilter(BaseFilter):
     def __init__(
             self,
             max_removed_ratio: float = 0.05,
+            max_uppercase_ratio: float = 0.99,
+            min_word_cnt_per_line: int = 2,
             num_of_sentences: int = 3,
             exclusion_writer: DiskWriter = None,
             store_new_text = False,
@@ -114,6 +122,8 @@ class LineRemovalFilter(BaseFilter):
     ):
         super().__init__(exclusion_writer)
         self.max_removed_ratio = max_removed_ratio
+        self.max_uppercase_ratio = max_uppercase_ratio
+        self.min_word_cnt_per_line = min_word_cnt_per_line
         self.num_of_sentences = num_of_sentences
         self.store_new_text = store_new_text
         self.language = language
@@ -129,7 +139,10 @@ class LineRemovalFilter(BaseFilter):
         
         for line in lines:
             # line removal
-            is_filtered, removed_words_cnt = line_filtering(line)
+            is_filtered, removed_words_cnt = line_filtering(
+                line,
+                max_uppercase_ratio=self.max_uppercase_ratio,
+                min_word_cnt_per_line=self.min_word_cnt_per_line)
             fraction_of_words_corrected_in_lines += removed_words_cnt
             if not is_filtered:
                 new_lines.append(line)
