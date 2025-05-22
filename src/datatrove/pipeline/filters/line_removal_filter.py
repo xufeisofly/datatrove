@@ -143,11 +143,13 @@ class LineRemovalFilter(BaseFilter):
                 line,
                 max_uppercase_ratio=self.max_uppercase_ratio,
                 min_word_cnt_per_line=self.min_word_cnt_per_line)
-            fraction_of_words_corrected_in_lines += removed_words_cnt
+            
             if not is_filtered:
                 new_lines.append(line)
                 sentences = split_into_sentences(line, self.language)
                 num_sentences += len(sentences)
+            # 统计被删除的单词数
+            fraction_of_words_corrected_in_lines += removed_words_cnt
         
         if fraction_of_words_corrected_in_lines / len(text.split())  > self.max_removed_ratio:
             return False, 'too_many_removed_lines'

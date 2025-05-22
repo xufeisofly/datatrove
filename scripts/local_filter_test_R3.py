@@ -59,7 +59,8 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
         pipeline=[
             INPUT_READER,
             LineRemovalFilter(
-                exclusion_writer=JsonlWriter(f"{output_folder}/line_removal/removed/", compression=None)
+                exclusion_writer=JsonlWriter(f"{output_folder}/line_removal/removed/", compression=None),
+                store_new_text=True,
             ),
             filter_task,
             JsonlWriter(f"{FILTERING_OUTPUT_PATH}/output/", compression=None),            

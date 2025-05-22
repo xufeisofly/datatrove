@@ -271,4 +271,4 @@ Publication format:
 Print     
     """
 
-    LineRemovalFilter().filter(doc)
+    LineRemovalFilter(min_word_cnt_per_line=3).filter(doc)
