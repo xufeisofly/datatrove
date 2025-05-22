@@ -124,7 +124,12 @@ class GopherRepetitionFilter(BaseFilter):
         if self.dup_line_char_frac and char_duplicates / len(text) > self.dup_line_char_frac:
             return False, "dup_line_char_frac"
 
-        words = split_into_words(text, self.language)
+        try:
+            words = split_into_words(text, self.language)
+        except Exception:
+            if len(text) > 1000:
+                return True
+            return False, "word_split_failed"
 
         for n, n_frac in self.top_n_grams:
             n_grams = get_n_grams(words, n)

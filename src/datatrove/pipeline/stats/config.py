@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 
-GROUP = Literal["summary", "histogram", "fqdn", "suffix"]
+# GROUP = Literal["summary", "histogram", "fqdn", "suffix"]
+GROUP = Literal["summary", "histogram"]
 
 
 @dataclass(frozen=True)

@@ -53,6 +53,8 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
         filter_task = C4QualityFilter(
             exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/removed/", compression=None),
             filter_curly_bracket=False,
+            filter_no_terminal_punct=False,
+            check_left_sentences_valid=True,
         )
     elif filter_type == "fineweb_qual":
         filter_task = FineWebQualityFilter(

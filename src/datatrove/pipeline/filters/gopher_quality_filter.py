@@ -73,7 +73,13 @@ class GopherQualityFilter(BaseFilter):
 
         """
         text = doc.text
-        words = split_into_words(text, self.language)
+        try:
+            words = split_into_words(text, self.language)
+        except Exception:
+            if len(text) > 1000:
+                return True
+            return False, "word_split_failed"
+
         n_words = len(words)
 
         non_symbol_words = [w for w in words if any(ch not in PUNCTUATION_SET for ch in w)]
