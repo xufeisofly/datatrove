@@ -151,6 +151,10 @@ class LineRemovalFilter(BaseFilter):
             # 统计被删除的单词数
             fraction_of_words_corrected_in_lines += removed_words_cnt
 
+        doc.text = "\n".join(new_lines)
+        if self.store_new_text:
+            doc.metadata['new_text'] = doc.text            
+
         total_words_cnt = len(text.split())
         if total_words_cnt and fraction_of_words_corrected_in_lines / total_words_cnt  > self.max_removed_ratio:
             return False, 'too_many_removed_lines'
@@ -162,10 +166,6 @@ class LineRemovalFilter(BaseFilter):
             # line-wise doc filtering
             if "lorem ipsum" in line.lower():
                 return False, "lorem_ipsum"        
-
-        doc.text = "\n".join(new_lines)
-        if self.store_new_text:
-            doc.metadata['new_text'] = doc.text
 
         return True
 
