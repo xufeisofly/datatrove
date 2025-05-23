@@ -22,7 +22,7 @@ class GopherQualityFilter(BaseFilter):
         max_symbol_word_ratio: float | None = 0.1,
         max_bullet_lines_ratio: float | None = 0.9,
         max_ellipsis_lines_ratio: float | None = 0.3,
-        max_non_alpha_words_ratio: float | None = 0.5,
+        max_non_alpha_words_ratio: float | None = 0.8,
         min_stop_words: int | None = 2,
         stop_words: list[str] | None = None,
         exclusion_writer: DiskWriter = None,
