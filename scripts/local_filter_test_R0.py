@@ -1,7 +1,5 @@
 import os
 from glob import glob
-from datatrove.pipeline.filters.preprocess_beta1_filter import PreprocessBeta1Filter
-from datatrove.pipeline.filters.preprocess_beta2_filter import RepeatingRowsFilter
 from loguru import logger
 
 from datatrove.executor.local import LocalPipelineExecutor
@@ -35,7 +33,7 @@ def process_filter(input_folder, output_folder, job_name, n_job, partition, file
     INPUT_READER = JsonlReader(input_folder, glob_pattern="*.jsonl", text_key="text")
     FILTERING_OUTPUT_PATH = f"{output_folder}/{filter_type}"
 
-    LOGGING_FOLDER  = f"/root/dataprocess/data/logs/subject_exp/"
+    LOGGING_FOLDER  = f"/root/dataprocess/data/logs/d3_r0_log/"
 
     # 根据过滤器类型选择过滤器
     if filter_type == "gopher_rep":
@@ -85,9 +83,9 @@ def get_subfolders(parent_folder):
 
 
 if __name__ == '__main__':
-    input_folder_base = "/root/dataprocess/data/exp/"
-    output_folder_base = "/root/dataprocess/data/exp_output/"
-    base_job_name = "exp"
+    input_folder_base = "/root/dataprocess/data/local_test_data/exp_d3/"
+    output_folder_base = "/root/dataprocess/data/local_test_data/exp_d3_r0_output/"
+    base_job_name = "exp_d3_r0"
 
     # 获取该文件夹下的所有子文件夹
     subfolders = get_subfolders(input_folder_base)

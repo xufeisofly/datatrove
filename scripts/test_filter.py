@@ -1,4 +1,4 @@
-from datatrove.pipeline.filters.preprocess_beta1_filter import PreprocessBeta1Filter
+from datatrove.pipeline.filters.line_removal_filter import LineRemovalFilter
 import numpy as np
 
 from datatrove.data import Document
@@ -244,6 +244,7 @@ def print_ratios():
 
 def test():
     doc = Document
+    doc.metadata = {}
     doc.text = """
 User: Guest  Login
 Document type:
@@ -270,4 +271,4 @@ Publication format:
 Print     
     """
 
-    PreprocessBeta1Filter().filter(doc)
+    LineRemovalFilter(min_word_cnt_per_line=3).filter(doc)

@@ -10,11 +10,11 @@ from datatrove.utils.word_tokenizers import load_word_tokenizer
 
 
 def get_short_word_ratio(words: list[str], threshold: int) -> float:
-    return sum([1 for word in words if len(word) <= threshold]) / len(words)
+    return sum([1 for word in words if len(word) <= threshold]) / len(words) if len(words) != 0 else -1
 
 
 def get_long_word_ratio(words: list[str], threshold: int) -> float:
-    return sum([1 for word in words if len(word) >= threshold]) / len(words)
+    return sum([1 for word in words if len(word) >= threshold]) / len(words) if len(words) != 0 else -1
 
 
 class WordStats(BaseStats):
@@ -66,7 +66,7 @@ class WordStats(BaseStats):
 
         return {
             "n_words": len(words),
-            "avg_word_length": sum([len(word) for word in words]) / len(words),
+            "avg_word_length": sum([len(word) for word in words]) / len(words) if len(words) != 0 else -1,
             "avg_words_per_line": len(words) / len(lines),
             **{
                 f"short_word_ratio_{chars}": get_short_word_ratio(words, chars)
@@ -76,8 +76,8 @@ class WordStats(BaseStats):
                 f"long_word_ratio_{chars}": get_long_word_ratio(words, chars)
                 for chars in self.long_word_max_chars_threshold
             },
-            "type_token_ratio": len(set(words)) / len(words),
-            "uppercase_word_ratio": sum([1 for word in words if word.isupper()]) / len(words),
-            "capitalized_word_ratio": sum([1 for word in words if word.istitle()]) / len(words),
-            "stop_word_ratio": sum([1 for word in words if word in self.stop_words]) / len(words),
+            "type_token_ratio": len(set(words)) / len(words) if len(words) != 0 else -1,
+            "uppercase_word_ratio": sum([1 for word in words if word.isupper()]) / len(words) if len(words) != 0 else -1,
+            "capitalized_word_ratio": sum([1 for word in words if word.istitle()]) / len(words) if len(words) != 0 else -1,
+            "stop_word_ratio": sum([1 for word in words if word in self.stop_words]) / len(words) if len(words) != 0 else -1,
         }
