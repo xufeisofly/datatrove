@@ -1,0 +1,122 @@
+import os
+import sys
+sys.path.append("/home/wujinpeng/datatrove/src")
+from glob import glob
+from datatrove.pipeline.filters.line_removal_filter import LineRemovalFilter
+from datatrove.pipeline.stats import DocStats, LineStats, WordStats
+from loguru import logger
+
+from datatrove.executor.local import LocalPipelineExecutor
+from datatrove.pipeline.filters import (
+    GopherRepetitionFilter,
+    GopherQualityFilter,
+    FineWebQualityFilter,
+)
+from datatrove.pipeline.readers import JsonlReader
+from datatrove.pipeline.writers.jsonl import JsonlWriter
+
+
+def process_filter(input_folder, output_folder, job_name, n_job, partition, file_name):
+    """
+    处理单个过滤器任务。
+    :param input_folder: 输入文件夹路径
+    :param output_folder: 输出文件夹路径
+    :param job_name: 任务名称
+    :param n_job: 并行任务数
+    :param partition: SLURM 分区
+    :param file_name: 文件名标识
+    :param filter_type: 过滤器类型
+    """
+    # 确保输出文件夹存在
+    os.makedirs(output_folder, exist_ok=True)
+
+    logger.info(f"Processing {input_folder} with filter.")
+
+    # 定义输入读取器
+    INPUT_READER = JsonlReader(input_folder, glob_pattern="*.jsonl", text_key="text")
+    FILTERING_OUTPUT_PATH = f"{output_folder}"
+
+    LOGGING_FOLDER  = f"/home/wujinpeng/dataprocess/data/logs/d1_log/"
+    DATA_FOLDER = f"{FILTERING_OUTPUT_PATH}/stats"
+
+    def stats_pipeline():
+        return [
+            WordStats(
+                output_folder=DATA_FOLDER,
+            ),
+            LineStats(
+                output_folder=DATA_FOLDER,
+            ),
+            DocStats(
+                output_folder=DATA_FOLDER,
+            ),            
+        ]
+
+    # 根据过滤器类型选择过滤器
+    filter_tasks = []
+
+    filter_tasks.append(LineRemovalFilter(
+        exclusion_writer=JsonlWriter(f"{output_folder}/line_removal/removed/", compression=None),
+        store_new_text=True,
+    ))
+    filter_tasks.append(GopherRepetitionFilter(
+        exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/gopher_rep/removed/", compression=None)
+    ))
+    filter_tasks.append(GopherQualityFilter(
+        use_whitelist=True,
+        exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/gopher_qual/removed/", compression=None)
+    ))
+    filter_tasks.append(FineWebQualityFilter(
+        exclusion_writer=JsonlWriter(f"{FILTERING_OUTPUT_PATH}/fineweb_qual/removed/", compression=None)
+    ))
+
+    # 创建 SLURM 执行器
+    executor = LocalPipelineExecutor(
+        pipeline=[
+            INPUT_READER,
+            *filter_tasks,
+            *stats_pipeline(),
+            JsonlWriter(f"{FILTERING_OUTPUT_PATH}/output/", compression=None),            
+        ],
+        tasks=n_job,
+        skip_completed=False,
+        logging_dir=f"{LOGGING_FOLDER}/{file_name}",
+        randomize_start_duration=180,  # 避免同时启动所有任务
+    )
+
+    # 启动任务
+    executor.run()
+
+
+def get_subfolders(parent_folder):
+    """获取指定目录下的所有子文件夹"""
+    return [f.path for f in os.scandir(parent_folder) if f.is_dir()]
+
+
+if __name__ == '__main__':
+    input_folder_base = "/root/dataprocess/data/local_test_data/exp_d3/"
+    output_folder_base = "/root/dataprocess/data/local_test_data/exp_d3_v1_output2/"    
+    base_job_name = "exp_d3"
+
+    # 获取该文件夹下的所有子文件夹
+    subfolders = get_subfolders(input_folder_base)
+
+    # 定义过滤器类型列表
+    filter_types = ["gopher_rep", "gopher_qual", "fineweb_qual"]
+
+    for subfolder in subfolders:
+        file_name = os.path.basename(subfolder)
+        input_folder = subfolder
+        output_folder = os.path.join(output_folder_base, file_name)
+
+        njobs = len(glob(f"{input_folder}/*.jsonl"))
+
+        # 对每个子文件夹分别运行 4 个过滤器
+        process_filter(
+            input_folder=input_folder,
+            output_folder=output_folder,
+            job_name=f"{base_job_name}_{file_name}",
+            n_job=njobs,
+            partition="operation",
+            file_name=file_name,
+        )

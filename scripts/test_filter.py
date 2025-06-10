@@ -1,3 +1,4 @@
+from datatrove.pipeline.filters.gopher_repetition_filter import GopherRepetitionFilter
 from datatrove.pipeline.filters.line_removal_filter import LineRemovalFilter
 import numpy as np
 
@@ -271,4 +272,5 @@ Publication format:
 Print     
     """
 
+    GopherRepetitionFilter().filter(doc)
     LineRemovalFilter(min_word_cnt_per_line=3).filter(doc)
